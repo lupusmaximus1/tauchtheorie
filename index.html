@@ -1,0 +1,474 @@
+<title>Logbuch Tauchtheorie</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
+<style>
+/* Layout: eine Spalte wie ein Logbuch, links eine Tiefenskala als Leitmotiv; App mit drei Ansichten (Start, Lernpaket, Quiz) */
+:root{
+  --bg:#EEF4F4; --surface:#FFFFFF; --ink:#0F2429; --muted:#4F656B; --line:#D3E0E2;
+  --sea:#0B5563; --sea-soft:#DCEBEE; --buoy:#D9531A; --buoy-soft:#FBE6DB;
+  --ok:#2D7A4C; --ok-soft:#DFF1E6; --bad:#B3261E; --bad-soft:#F8E0DE;
+  --display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", "Helvetica Neue", Arial, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0A191D; --surface:#11262C; --ink:#E3EEF0; --muted:#94AAB0; --line:#23414A;
+  --sea:#6CBACA; --sea-soft:#163840; --buoy:#FF8048; --buoy-soft:#3A2218;
+  --ok:#62C98F; --ok-soft:#163626; --bad:#FF8A80; --bad-soft:#3B1C1A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0A191D; --surface:#11262C; --ink:#E3EEF0; --muted:#94AAB0; --line:#23414A;
+  --sea:#6CBACA; --sea-soft:#163840; --buoy:#FF8048; --buoy-soft:#3A2218;
+  --ok:#62C98F; --ok-soft:#163626; --bad:#FF8A80; --bad-soft:#3B1C1A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:2rem;font-weight:800;letter-spacing:-.01em}
+h2{font-size:1.45rem;font-weight:800}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+a{color:var(--sea)}
+.eyebrow{font-size:.75rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.muted{color:var(--muted)}
+button{font:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:3px solid var(--buoy);outline-offset:2px}
+
+/* Kopf mit Tiefenskala */
+.hero{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start}
+.hero > div{min-width:0;display:flex;flex-direction:column;gap:10px}
+.gauge{width:118px;font-size:.72rem;font-variant-numeric:tabular-nums;color:var(--muted);position:relative;height:200px;border-left:3px solid var(--sea);margin-top:6px}
+.gauge .mk{position:absolute;left:-3px;display:flex;align-items:center;gap:6px;transform:translateY(-50%);white-space:nowrap}
+.gauge .mk::before{content:"";width:10px;height:3px;background:var(--sea)}
+.gauge .mk.hot::before{background:var(--buoy);width:14px}
+.gauge .mk b{color:var(--ink)}
+
+.note{background:var(--sea-soft);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;font-size:.95rem}
+.note.warn{background:var(--buoy-soft)}
+.note h3{font-size:1rem}
+
+/* Paketliste */
+.list{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:2.6rem 1fr auto;gap:12px;align-items:center;padding:14px 4px;border-bottom:1px solid var(--line);
+  background:none;border-left:0;border-right:0;border-top:0;text-align:left;color:inherit;width:100%}
+.row:hover{background:var(--surface)}
+.row .nr{font-family:var(--display);font-weight:800;font-size:1.35rem;color:var(--sea);font-variant-numeric:tabular-nums}
+.row .t{min-width:0;display:flex;flex-direction:column;gap:2px}
+.row .t b{font-size:1.02rem}
+.row .t span{font-size:.85rem;color:var(--muted)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.chip{font-size:.72rem;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--sea-soft);color:var(--sea);white-space:nowrap}
+.chip.done{background:var(--ok-soft);color:var(--ok)}
+.chip.safe{background:var(--buoy-soft);color:var(--buoy)}
+
+.special{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.special button{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:left;color:inherit;display:flex;flex-direction:column;gap:4px}
+.special button b{font-family:var(--display);font-size:1.1rem}
+.special button.sos{border-color:var(--buoy)}
+.special button span{font-size:.85rem;color:var(--muted)}
+@media (max-width:460px){.special{grid-template-columns:1fr}.gauge{display:none}.hero{grid-template-columns:1fr}}
+
+/* Lernpaket */
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.back{background:none;border:0;color:var(--sea);font-weight:700;padding:6px 0}
+.sec{display:flex;flex-direction:column;gap:8px;padding-top:14px;border-top:1px solid var(--line)}
+.sec ul,.sec ol{margin:0;padding-left:1.25rem;display:flex;flex-direction:column;gap:4px}
+.merke{border:2px solid var(--sea);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.merke ul{margin:0;padding-left:1.2rem}
+.signs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.sign{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;font-size:.9rem}
+.sign svg{width:64px;height:64px}
+.src{font-size:.8rem;color:var(--muted)}
+.btn{background:var(--sea);color:var(--bg);border:0;border-radius:10px;padding:12px 18px;font-weight:700}
+.btn.alt{background:var(--surface);color:var(--sea);border:2px solid var(--sea)}
+.btn.orange{background:var(--buoy);color:#fff}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.95rem}
+td,th{border-bottom:1px solid var(--line);padding:6px 12px 6px 0;text-align:left}
+.tbl{overflow-x:auto}
+.raid{font-size:.72rem;font-weight:700;background:var(--buoy-soft);color:var(--buoy);padding:1px 6px;border-radius:4px;white-space:nowrap}
+
+/* Quiz */
+.levels{display:flex;gap:10px;flex-wrap:wrap}
+.bar{height:6px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--sea);transition:width .3s}
+.q{font-family:var(--display);font-weight:600;font-size:1.25rem;line-height:1.3}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{background:var(--surface);border:2px solid var(--line);border-radius:12px;padding:13px 14px;text-align:left;color:var(--ink);min-height:52px}
+.opt:hover:not(:disabled){border-color:var(--sea)}
+.opt:disabled{cursor:default}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.fb{border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.fb.ok{background:var(--ok-soft)}.fb.no{background:var(--bad-soft)}
+.fb b{font-family:var(--display)}
+.score{font-family:var(--display);font-weight:800;font-size:3rem;color:var(--sea);font-variant-numeric:tabular-nums}
+.review{display:flex;flex-direction:column;gap:12px}
+.review div{border-left:3px solid var(--bad);padding-left:12px;display:flex;flex-direction:column;gap:2px;font-size:.95rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap" id="app"></div>
+
+<script>
+/* ===================== INHALT =====================
+   Quelle aller Inhalte: RAID Open Water 20 Diver Kursmanuals (DE, Stand 05/2024).
+   PADI-Altersregeln: blog.padi.com ("How old do you have to be to scuba dive").
+*/
+var R = '<span class="raid">RAID</span>';
+
+var PAKETE = [
+{ id:"regeln", titel:"Grundregeln und Begriffe", kurz:"Goldene Regeln, Buddy, Handzeichen, wichtige Wörter",
+  quelle:"Tauchen im Allgemeinen; Management (Verfahren für sicheres Tauchen)",
+  secs:[
+  {h:"Die zwei goldenen Regeln", html:"<ol><li><b>Halte unter Wasser nie den Atem an.</b> Wenn du nicht einatmen kannst, atme aus.</li><li><b>Kenne jederzeit deinen Luftvorrat.</b> Schau regelmässig auf dein Finimeter (die Luftanzeige).</li></ol><p>Fast alles unter Wasser lässt sich lösen, solange du etwas zum Atmen hast.</p>"},
+  {h:"Die fünf wichtigsten Regeln", html:"<ol><li>Atme ruhig und ohne Pause weiter.</li><li>Tauche langsam auf: höchstens <b>9 Meter pro Minute</b>.</li><li>Behalte deinen Luftvorrat und deine Instrumente im Blick.</li><li>Bleib nahe bei deinem Buddy.</li><li>Mach früh und oft den Druckausgleich in den Ohren.</li></ol>"},
+  {h:"Der Buddy", html:"<p>Dein Buddy ist dein Tauchpartner. Ihr passt gegenseitig aufeinander auf: zwei Köpfe, vier Hände, vier Augen. Bleib in Griffweite, bei guten Bedingungen höchstens etwa <b>3 Meter</b> entfernt. Sprecht vor dem Tauchgang ab, wer führt.</p>"},
+  {h:"Handzeichen", html:"<p>Unter Wasser kann man nicht sprechen. Diese vier Zeichen sind in den Unterlagen abgebildet:</p><div class='signs' id='signs'></div><p class='muted'>Achtung: Daumen hoch heisst beim Tauchen <b>Auftauchen</b>, nicht „super“. Weitere Zeichen lernt ihr im Kurs.</p><p>Andere Wege, sich zu verständigen: auf die Flasche klopfen, Buddy antippen, Schreibtafel, Signalpfeife an der Oberfläche.</p>"},
+  {h:"Wichtige Wörter", html:"<ul><li><b>Sicherheitsstopp:</b> am Ende jedes Tauchgangs 3 bis 5 Minuten auf 5 Meter Tiefe warten. Im Notfall darf man ihn weglassen.</li><li><b>Nullzeit:</b> so lange darfst du auf einer Tiefe bleiben und trotzdem jederzeit direkt auftauchen, ohne Pflicht-Stopps.</li><li><b>SCUBA:</b> „Self-Contained Underwater Breathing Apparatus“, also ein Atemgerät, das man selbst mitträgt.</li><li><b>Nitrox:</b> Atemgas mit mehr Sauerstoff als normale Luft. Dafür braucht man eine extra Ausbildung.</li></ul>"},
+  {h:"Vor und nach dem Tauchen", html:"<ul><li>Genug Wasser trinken, normal essen (nicht zu fett, nicht zu viel).</li><li>Kein Alkohol, nicht krank oder erkältet tauchen.</li><li>Nach dem Tauchen nicht gleich fliegen oder in die Berge fahren. Der niedrigere Luftdruck in der Höhe kann gefährlich sein. Wie lange man warten muss, sagt der Tauchcomputer oder der Instructor.</li></ul>"}
+  ],
+  merke:["Atem nie anhalten.","Luft immer kennen.","Langsam auftauchen, höchstens 9 m pro Minute.","Sicherheitsstopp: 5 m, 3 bis 5 Minuten."],
+  frag:["Wie lange sollen wir nach dem Tauchen mit dem Rückflug warten? (Die Unterlagen nennen einmal „12 bzw. 24 Stunden“ und einmal „12 bis 24 Stunden“.)"]
+},
+{ id:"ausruestung", titel:"Ausrüstung", kurz:"Maske, Flossen, Anzug, Jacket, Atemregler, Flasche, Computer",
+  quelle:"Ausrüstung",
+  secs:[
+  {h:"Maske und Schnorchel", html:"<ul><li>Eine Tauchmaske bedeckt auch die <b>Nase</b>. Nur so kannst du Luft in die Maske blasen, wenn sie in der Tiefe ans Gesicht gedrückt wird. Eine Schwimmbrille geht deshalb nicht.</li><li>Passt die Maske? Aufs Gesicht legen, <b>ohne einzuatmen</b>, und schauen, ob überall Kontakt ist.</li><li>Eine neue Maske hat einen Schutzfilm. Den mit Zahnpasta (kein Gel) innen wegreiben, sonst beschlägt das Glas.</li><li>Das Maskenband nicht zu fest ziehen.</li><li>Den Schnorchel brauchst du an der Oberfläche. So sparst du die Luft aus der Flasche.</li></ul>"},
+  {h:"Flossen", html:"<ul><li><b>Vollfussflossen</b> zieht man barfuss an. Sie sind gut für warmes Wasser und Bootstauchgänge.</li><li><b>Geräteflossen</b> (offene Ferse) trägt man mit Füsslingen. Die meisten Taucher nutzen diese.</li><li>Lange Freitauchflossen sind zum Gerätetauchen nicht geeignet.</li></ul>"},
+  {h:"Tauchanzug", html:"<ul><li>Wasser kühlt den Körper etwa <b>20-mal schneller</b> als Luft.</li><li><b>Nassanzug</b> aus Neopren: Eine dünne Wasserschicht kommt hinein, wird vom Körper warm und isoliert.</li><li>In der Tiefe werden die Luftbläschen im Neopren zusammengedrückt. Der Anzug wärmt dann weniger und hat weniger Auftrieb.</li><li>Über Kopf und Nacken geht viel Wärme verloren. Eine Kopfhaube hilft.</li><li>Ein <b>Trockenanzug</b> lässt kein Wasser hinein. Dafür braucht man eine extra Ausbildung.</li></ul>"},
+  {h:"Tarierjacket (Tariersystem)", html:"<ul><li>Mehr Luft im Jacket heisst mehr Auftrieb, du steigst. Luft raus heisst, du sinkst.</li><li>Am <b>Inflator</b> gibt es einen Knopf zum Aufblasen und einen zum Ablassen. Man kann das Jacket auch mit dem Mund aufblasen.</li><li>Zum Ablassen den Faltenschlauch <b>nach oben</b> halten, denn die Luft sammelt sich oben.</li><li>Wichtig: Das Jacket ist <b>keine Rettungsweste</b>. Es hält einen bewusstlosen Menschen nicht sicher mit dem Gesicht nach oben.</li></ul>"},
+  {h:"Atemregler", html:"<ul><li>Die <b>1. Stufe</b> sitzt am Flaschenventil. Sie senkt den Druck von etwa 200 bar auf etwa 8 bis 10 bar.</li><li>Die <b>2. Stufe</b> ist das Mundstück. Sie gibt dir Luft mit genau dem Druck, der um dich herum herrscht.</li><li>Der <b>Ersatzatemregler</b> („Oktopus“) ist für den Notfall, wenn deinem Buddy die Luft ausgeht. Er sitzt gut sichtbar zwischen Kinn und unterem Rippenbogen.</li></ul>"},
+  {h:"Flasche, Instrumente, Blei", html:"<ul><li>Die Flasche nie ganz leer atmen, nicht in die Sonne oder ins heisse Auto legen und nie unbeaufsichtigt aufrecht stehen lassen.</li><li><b>Finimeter:</b> zeigt, wie viel Luft (bar) noch in der Flasche ist.</li><li><b>Tauchcomputer:</b> zeigt Tiefe, Zeit und Nullzeit und warnt bei zu schnellem Aufstieg. Niemals mit jemandem teilen und vor dem Tauchen den Akku prüfen.</li><li><b>Blei</b> brauchst du, damit du überhaupt sinken kannst. Es muss sich im Notfall mit einer Hand schnell abwerfen lassen. Den Bleigürtel trägt man so, dass er sich mit der <b>rechten Hand</b> öffnen lässt.</li><li><b>Boje (SMB):</b> zeigt Booten, wo du bist. Die Leine nie am Körper festbinden, sonst kann dich die Strömung nach oben ziehen.</li></ul>"},
+  {h:"Pflege nach dem Tauchen", html:"<ul><li>Alles mit Süsswasser abspülen.</li><li>Die Staubkappe trocken auf die 1. Stufe setzen. In die 1. Stufe darf <b>kein Wasser</b> kommen, also nie untertauchen.</li><li>Im Schatten und luftig trocknen lassen.</li></ul>"}
+  ],
+  merke:["Maske ohne Einatmen anprobieren.","Jacket: Luft rein = steigen, Luft raus = sinken.","Ersatzatemregler ist für den Buddy.","Tauchcomputer nie teilen."],
+  frag:["Welche Ausrüstung sollen wir selbst kaufen und was leihen wir in Ägypten? (Die Unterlagen empfehlen eigene Maske, Schnorchel, Flossen und Füsslinge.)"]
+},
+{ id:"physik", titel:"Physik unter Wasser", kurz:"Auftrieb, Druck, Luftverbrauch, Sehen, Hören, Kälte",
+  quelle:"Physik",
+  secs:[
+  {h:"Auftrieb", html:"<p>Wasser drückt alles nach oben, das ist der Auftrieb. Es gibt drei Zustände:</p><ul><li><b>Positiv:</b> Du treibst an der Oberfläche (Jacket aufgeblasen).</li><li><b>Neutral:</b> Du schwebst, ohne zu sinken oder zu steigen. Das ist das Ziel unter Wasser.</li><li><b>Negativ:</b> Du sinkst (Jacket leer).</li></ul><p>Auch deine <b>Lunge</b> verändert den Auftrieb: Einatmen hebt dich ein wenig, Ausatmen lässt dich sinken. Damit kann man fein steuern.</p>"},
+  {h:"Richtig viel Blei", html:"<ul><li>Test: Mit leerem Jacket und einem tiefen, angehaltenen Atemzug liegt die Wasseroberfläche genau auf Höhe deines Scheitels.</li><li><b>Salzwasser</b> ist schwerer als Süsswasser und trägt mehr. Im Meer brauchst du deshalb <b>mehr Blei</b> als im Schwimmbad oder See.</li><li>Zu viel Blei ist gefährlich und macht das Tarieren schwer.</li></ul>"},
+  {h:"Druck und Luft", html:"<p>Je tiefer, desto mehr Wasser drückt auf dich. Alle 10 Meter Meerwasser kommt 1 bar dazu. Luft lässt sich zusammendrücken:</p><div class='tbl'><table><tr><th>Tiefe</th><th>Druck</th><th>Ein Ballon ist so gross</th></tr><tr><td>0 m</td><td>1 bar</td><td>ganz</td></tr><tr><td>10 m</td><td>2 bar</td><td>½</td></tr><tr><td>20 m</td><td>3 bar</td><td>⅓</td></tr><tr><td>30 m</td><td>4 bar</td><td>¼</td></tr></table></div><p>Die grösste Veränderung passiert auf den <b>ersten 10 Metern</b>. Dort ist besondere Vorsicht nötig.</p>"},
+  {h:"Warum nie den Atem anhalten?", html:"<p>Mit dem Tauchgerät atmest du Luft, die so stark zusammengedrückt ist wie das Wasser um dich herum. Beim Auftauchen dehnt sie sich aus. Hältst du dabei die Luft an, wird die Lunge überdehnt und kann reissen. Das ist lebensgefährlich.</p><p>Beim Schnorcheln ist das anders: Du nimmst oben einen Atemzug, der unten zusammengedrückt wird und oben wieder normal gross ist.</p>"},
+  {h:"Luftverbrauch", html:"<p>In 20 m Tiefe (3 bar) brauchst du für jeden Atemzug <b>3-mal so viel Luft</b> wie oben. Reicht die Flasche an der Oberfläche 60 Minuten, ist sie in 20 m schon nach etwa 20 Minuten leer. Je flacher du tauchst, desto länger reicht die Luft.</p>"},
+  {h:"Sehen, Farben, Hören, Kälte", html:"<ul><li>Durch die Maske wirkt alles etwa <b>⅓ grösser und näher</b>. Darum greift man am Anfang oft daneben.</li><li><b>Rot und Orange</b> verschwinden mit der Tiefe zuerst, Blau bleibt. Mit einer Lampe sieht man die echten Farben.</li><li>Schall ist unter Wasser schneller und weiter. Man kann aber kaum hören, <b>woher</b> ein Geräusch kommt.</li><li>Wasser kühlt etwa 20-mal schneller als Luft. Auch die kalte Atemluft aus der Flasche kühlt dich von innen.</li></ul>"},
+  {h:"Für Profis: Partialdruck", html:"<p>Luft besteht aus etwa 21 % Sauerstoff und 79 % Stickstoff. Der Anteil bleibt gleich, aber der Druck jedes Gases steigt mit der Tiefe. Sauerstoff hat oben 0,21 bar, in 20 m (3 bar) sind es 0,21 × 3 = <b>0,63 bar</b>.</p>"}
+  ],
+  merke:["Alle 10 m Meerwasser: +1 bar.","Auf den ersten 10 m ändert sich am meisten.","Im Meer mehr Blei als im Pool.","Tiefer = mehr Luftverbrauch."],
+  frag:[]
+},
+{ id:"koerper", titel:"Dein Körper beim Tauchen", kurz:"Druckausgleich, Ohren, Lunge, Stickstoff, Kälte",
+  quelle:"Physiologie; Physik",
+  secs:[
+  {h:"Druckausgleich", html:"<ul><li>Beim Abtauchen drückt das Wasser auf die Luft in Ohren, Nebenhöhlen und Maske. Diesen Druck musst du ausgleichen.</li><li><b>Früh und oft</b>: am besten schon vor dem Einstieg einmal testen, dann etwa <b>jeden Meter</b>.</li><li><b>Valsalva</b>: Nase zuhalten und <b>sanft</b> dagegen ausatmen. Auch Schlucken, Gähnen oder Kauen kann helfen.</li><li>Nicht fest pressen, das kann das Innenohr verletzen.</li><li>Für die <b>Maske</b>: einfach leicht durch die Nase in die Maske ausatmen.</li></ul>"},
+  {h:"Wenn das Ohr wehtut", html:"<ol><li>Etwa 1 Meter aufsteigen.</li><li>Nochmal vorsichtig ausgleichen.</li><li>Geht es nicht: Tauchgang abbrechen, dem Buddy Bescheid geben, langsam auftauchen.</li><li>Bleiben Schmerzen, Schwindel oder Blut in der Maske: zum Arzt.</li></ol><p><b>Nie mit Schnupfen oder Erkältung tauchen.</b> Dann klappt der Druckausgleich nicht richtig.</p>"},
+  {h:"Lungenverletzung (AGE)", html:"<p>Wer beim Auftauchen die Luft anhält, kann die Lunge überdehnen. Dann gelangt Luft ins Blut. Schon 1 bis 1,5 m Aufstieg mit voller, angehaltener Lunge können reichen. Die Anzeichen kommen <b>schnell</b>, noch beim oder direkt nach dem Auftauchen: Verwirrung, Schwindel, Lähmung, Bewusstlosigkeit.</p>"},
+  {h:"Stickstoff und Dekompressionskrankheit (DCS)", html:"<ul><li>Unter Druck löst sich Stickstoff aus der Atemluft im Körper. Beim langsamen Auftauchen atmet man ihn wieder ab.</li><li>Taucht man zu schnell auf, bilden sich zu grosse Bläschen. Das kann Gelenkschmerzen, Kribbeln, Hautreizungen und sogar Lähmungen auslösen. Diese Anzeichen kommen oft etwas <b>später</b>.</li><li>Vorbeugen: langsam auftauchen (max. 9 m/min), Sicherheitsstopp, genug trinken, innerhalb der Nullzeit bleiben.</li><li>Bei Verdacht: nicht mehr tauchen, <b>100 % Sauerstoff</b> atmen, sofort Arzt oder Notdienst. Anzeichen nie kleinreden.</li></ul>"},
+  {h:"Tiefenrausch", html:"<p>Ab etwa 30 m kann der Stickstoff wie Alkohol wirken: falsches Sicherheitsgefühl, schlechtes Urteilen. Ein paar Meter höher verschwindet es schnell wieder. Für euren Kurs seid ihr nie so tief.</p>"},
+  {h:"Atmung, Anstrengung, Kälte", html:"<ul><li>Den Drang zu atmen löst vor allem das <b>Kohlendioxid</b> aus, nicht der Sauerstoffmangel.</li><li>Deshalb ist es beim <b>Schnorcheltauchen gefährlich</b>, vorher viele Male schnell und tief zu atmen (hyperventilieren). Man kann dabei ohne Vorwarnung bewusstlos werden.</li><li>Ausser Atem? <b>Stoppen, atmen, nachdenken</b>, dann handeln. Dem Buddy Bescheid geben.</li><li>Schon 2 °C mehr oder weniger Körpertemperatur sind ein Problem. Wer unter Wasser zittert, beendet den Tauchgang.</li><li>In warmen Ländern den Anzug erst kurz vor dem Tauchen anziehen, sonst überhitzt man.</li></ul>"}
+  ],
+  merke:["Druckausgleich: früh, oft, sanft.","Schmerz? 1 m hoch, nochmal, sonst abbrechen.","Nie erkältet tauchen.","Verdacht auf DCS: Sauerstoff und Arzt."],
+  frag:[]
+},
+{ id:"planen", titel:"Einen Tauchgang planen", kurz:"Plan, Buddy-Check, Luftreserve, Tauchcomputer, Boot",
+  quelle:"Management; Freiwasser",
+  secs:[
+  {h:"Was gehört in den Plan?", html:"<ul><li>Wetter, Wellen, Strömung, Gezeiten</li><li>Wo steigt ihr ein und wieder aus?</li><li>Welche Richtung, wie tief, wie lange?</li><li>Bei wie viel Luft kehrt ihr um?</li><li>Welche Handzeichen nutzt ihr?</li><li>Was tut ihr, wenn ihr euch verliert?</li></ul><p>Und dann: <b>sich an den Plan halten.</b></p>"},
+  {h:"Buddy verloren", html:"<ol><li>Etwa <b>1 Minute</b> lang suchen.</li><li>Langsam auftauchen und sich dabei umschauen.</li><li>Oben treffen: Jacket aufblasen und Ausschau halten.</li></ol>"},
+  {h:"Buddy-Check vor dem Einstieg", html:"<p>Die RAID-Unterlagen nennen fünf Punkte "+R+":</p><ol><li>Flaschenventil offen</li><li>Atemregler funktionieren, Flasche voll</li><li>Flasche sitzt fest am Jacket</li><li>Jacket und Blei (Schnellabwurf)</li><li>Zum Schluss: Instrumente, Flossen, Maske, alles okay</li></ol><p class='muted'>Im PADI-Kurs kann der Check anders aufgebaut sein oder einen eigenen Merkspruch haben.</p>"},
+  {h:"Was begrenzt die Tauchzeit?", html:"<ul><li>der Luftvorrat</li><li>die Nullzeit</li><li>Kälte</li><li>die erlaubte Tiefe</li></ul><p>Es gilt immer der <b>vorsichtigste</b> Wert.</p>"},
+  {h:"Luftreserve", html:"<p>Plane immer eine Reserve ein. Die RAID-Unterlagen sagen: Aufstieg beginnen bei mindestens <b>50 bar</b> "+R+". Vor dem Tauchgang sollten 170 bis 200 bar in der Flasche sein.</p>"},
+  {h:"Tauchcomputer", html:"<ul><li>Vor dem Tauchen einschalten und den Akku prüfen.</li><li>Zeigt dir die verbleibende Nullzeit. Wenn du tiefer gehst, wird sie kürzer.</li><li>Warnungen nie ignorieren.</li><li>Nie teilen, denn er rechnet mit <b>deinen</b> Tauchgängen.</li></ul>"},
+  {h:"Tauchen vom Boot", html:"<ul><li><b>Bug</b> = vorne, <b>Heck</b> = hinten, <b>Backbord</b> = links, <b>Steuerbord</b> = rechts (nach vorne geschaut).</li><li>Vom grossen Boot: <b>grosser Schritt vorwärts</b>. Vom kleinen Boot oder Schlauchboot: <b>Rolle rückwärts</b>. Vorher prüfen, ob unten frei ist.</li><li>Beim Ein- und Aussteigen müssen die Schiffsschrauben stillstehen.</li><li>Gegen Seekrankheit: zum Horizont schauen, frische Luft, nichts Fettiges essen, viel Wasser trinken.</li></ul>"},
+  {h:"Für Profis: Luftverbrauch rechnen", html:"<p>Beispiel aus den Unterlagen: Flasche mit 11,1 Litern, 200 bar, Reserve 50 bar.</p><ol><li>Nutzbar: 150 bar × 11,1 l = <b>1665 Liter</b> (bei Oberflächendruck)</li><li>Verbrauch an der Oberfläche: 20 l/min. In 18 m sind es 2,8 bar, also 20 × 2,8 = <b>56 l/min</b>.</li><li>1665 ÷ 56 ≈ <b>30 Minuten</b>. Ein geplanter 40-Minuten-Tauchgang auf 18 m klappt also nicht.</li></ol>"}
+  ],
+  merke:["Oben angekommen: zuerst Jacket aufblasen, dann reden.","Buddy weg: 1 Minute suchen, dann auftauchen.","Plan machen und einhalten.","Immer Luftreserve behalten."],
+  frag:["Bei wie viel bar sollen wir den Aufstieg beginnen? (Die Unterlagen nennen einmal 50 bar und einmal „mit mindestens 30 bar an der Oberfläche“.)","Wie heisst der Buddy-Check im PADI-Kurs?"]
+},
+{ id:"umwelt", titel:"Unterwasserwelt und Umwelt", kurz:"Strömung, Gezeiten, Korallen, Tiere, Umweltschutz",
+  quelle:"Umwelt",
+  secs:[
+  {h:"Bedingungen prüfen", html:"<p>Vor jedem Tauchgang: Temperatur, Sicht, Strömung und Untergrund anschauen. Frag Leute, die den Platz kennen, zum Beispiel das Tauchcenter. Manchmal wird es plötzlich deutlich kälter. So eine Schicht heisst <b>Sprungschicht</b> (Thermokline).</p>"},
+  {h:"Strömungen", html:"<ul><li>Bei leichter Strömung: <b>gegen die Strömung starten</b>. Dann trägt sie dich auf dem Rückweg.</li><li>Am Grund ist die Strömung meist schwächer als an der Oberfläche.</li><li><b>Ripströmung</b>: ein schmaler, starker Strom vom Strand weg aufs Meer. Erkennbar an trübem, schäumendem Wasser. Nie dagegen anschwimmen, sondern <b>quer (im rechten Winkel)</b> herausschwimmen.</li><li>Treibst du am Ausstieg vorbei: Jacket aufblasen, um Hilfe winken, abholen lassen.</li></ul>"},
+  {h:"Gezeiten und Wellen", html:"<ul><li>Gezeiten entstehen durch Mond (und ein wenig Sonne). Es gibt zwei Zyklen am Tag.</li><li><b>Springtide</b> (stark) bei Voll- und Neumond, <b>Nipptide</b> (schwach) bei Halbmond.</li><li>Dünung kann einen gegen flache Riffe drücken, deshalb Abstand halten.</li></ul>"},
+  {h:"Korallen", html:"<ul><li>Korallen sind <b>Tiere</b>, winzige Polypen, keine Steine oder Pflanzen.</li><li>Sie brauchen Sonnenlicht, klares und sauberes Salzwasser und Wärme (meist 20 bis 32 °C).</li><li>Wer sie berührt, zerstört ihre Schutzschicht. Die Koralle kann dann absterben. Ein einziger Flossenschlag kann Jahrhunderte Wachstum kaputt machen.</li></ul>"},
+  {h:"Tiere", html:"<ul><li>Angriffe auf Taucher sind sehr selten. Tiere verteidigen sich nur, wenn man sie stört.</li><li><b>Skorpionsfische</b> haben giftige Stacheln und sind gut getarnt, deshalb Abstand zum Boden halten.</li><li><b>Muränen</b> öffnen ständig das Maul, weil sie so atmen. Sie beissen nur, wenn man sie ärgert.</li><li><b>Rochen</b> haben oft einen Stachel am Schwanz, sind aber nicht aggressiv.</li><li><b>Haie</b> greifen Taucher extrem selten an.</li><li>Fische nicht füttern, nicht jagen, nicht anfassen.</li></ul>"},
+  {h:"Umweltfreundlich tauchen", html:"<ul><li>Tarierung üben, auf den Flossenschlag achten.</li><li>Nichts anfassen: Korallen, Muscheln, bewachsene Steine.</li><li>Sonnencreme <b>20 bis 30 Minuten</b> vor dem Wasser auftragen, damit sie nicht gleich abgewaschen wird.</li><li>Kein Plastik ins Meer.</li></ul>"}
+  ],
+  merke:["Ripströmung: quer rausschwimmen.","Gegen die Strömung starten.","Korallen sind Tiere, nicht anfassen.","Tiere nicht füttern oder stören."],
+  frag:[]
+},
+{ id:"helfen", titel:"Probleme lösen und helfen", kurz:"Ohne Luft, Krampf, Panik, Notaufstieg, Erste Hilfe",
+  quelle:"Rettung; Management (Problemmanagement)",
+  secs:[
+  {h:"Stoppen, atmen, nachdenken, handeln", html:"<p>Das ist die Grundregel für jedes Problem: Erst anhalten, ruhig atmen, kurz überlegen, dann handeln. Nicht in Panik reagieren.</p>"},
+  {h:"An der Oberfläche", html:"<ul><li>Laut den Unterlagen passieren <b>mehr Unfälle an der Oberfläche</b> als in der Tiefe.</li><li>Immer zuerst <b>positiven Auftrieb</b> herstellen, also Jacket aufblasen. Im Notfall Blei abwerfen.</li><li>Dann nicht strampeln, sondern ruhig treiben und Hilfe holen.</li><li>Beim Husten oder bei Übelkeit den <b>Atemregler im Mund</b> behalten.</li></ul>"},
+  {h:"Keine Luft mehr", html:"<p><b>Beste Lösung: Luft vom Buddy.</b></p><ol><li>Zeichen „keine Luft“ geben.</li><li>Laut den RAID-Unterlagen gibt dir der Buddy seinen Hauptatemregler und nimmt selbst seinen Ersatzatemregler "+R+".</li><li>Mundstück richtig herum, ausblasen, atmen.</li><li>Gegenseitig festhalten, Instrumente prüfen, gemeinsam langsam auftauchen.</li></ol><p><b>Letzte Möglichkeit, wenn kein Buddy da ist: kontrollierter Notaufstieg (CESA).</b> Zur Oberfläche schwimmen und dabei die ganze Zeit langsam ausatmen, mit einem „aaah“-Ton. Der Atemregler bleibt im Mund. Nicht schneller als 9 m pro Minute.</p>"},
+  {h:"Andere Probleme", html:"<ul><li><b>Krampf in der Wade:</b> Flossenspitze zu dir ziehen und so den Muskel dehnen. Danach gemütlich weiter.</li><li><b>Atemregler bläst ab</b> (Luft strömt ständig): Mundstück locker im Mund lassen und weiteratmen, dem Buddy Bescheid geben, auftauchen.</li><li><b>Verheddert:</b> stoppen, atmen, Buddy um Hilfe bitten.</li><li><b>Tauchcomputer fällt aus:</b> dem Buddy zeigen und kontrolliert auftauchen.</li><li><b>Unwohlsein:</b> Tiefe und Luft prüfen, 2 bis 3 tiefe Atemzüge, Buddy informieren, auftauchen.</li></ul>"},
+  {h:"Einem anderen Taucher helfen", html:"<ul><li>Zeichen von Panik: Kopf krampfhaft über Wasser, Atemregler ausgespuckt, Maske auf der Stirn, schnelle Atmung, reagiert nicht auf Zurufe.</li><li>Als Tauchanfänger <b>dich nicht selbst in Gefahr bringen</b>. Schwimmhilfe zuwerfen, Hilfe rufen.</li><li>Taucher treibt mit dem Gesicht nach unten: auf die Schulter tippen. Reagiert er nicht, auf den Rücken drehen, damit Mund und Nase an der Luft sind, und um Hilfe rufen.</li><li>Ein Erste-Hilfe-Kurs mit Herz-Lungen-Wiederbelebung wird in den Unterlagen ausdrücklich empfohlen.</li></ul>"}
+  ],
+  merke:["Stoppen, atmen, nachdenken, handeln.","Oben: zuerst Auftrieb.","Keine Luft: zuerst zum Buddy.","Notaufstieg: ausatmen mit „aaah“."],
+  frag:["Wie läuft die Luftspende im PADI-Kurs: Gibt der Spender den Hauptatemregler oder den Ersatzatemregler?","Was genau tun wir, wenn der Tauchcomputer unter Wasser ausfällt? (Die Unterlagen beschreiben das an verschiedenen Stellen unterschiedlich.)"]
+},
+{ id:"uebungen", titel:"Die Übungen im Pool und im Meer", kurz:"Was ihr im Kurs üben werdet, Schritt für Schritt",
+  quelle:"Begrenztes Freiwasser; Freiwasser",
+  secs:[
+  {h:"So läuft der Kurs ab", html:"<ul><li>Zuerst üben im <b>Pool oder ruhigen Flachwasser</b>, danach im <b>offenen Meer</b>.</li><li>Jede Übung wird erst erklärt, dann gezeigt, dann geübt, bis sie sitzt. Wer länger braucht, bekommt mehr Zeit.</li><li>Vorher gibt es einen Schwimmtest. Bei RAID sind das 200 m ohne Hilfsmittel oder 300 m mit Maske, Schnorchel und Flossen, dazu 10 Minuten im tiefen Wasser treiben "+R+". Bei PADI kann das anders sein.</li></ul>"},
+  {h:"Abtauchen (5 Schritte)", html:"<ol><li>Dem Buddy zeigen: bereit.</li><li>Orientieren: Wo ist der Ausstieg, wohin geht es?</li><li>Atemregler im Mund, Instrumente prüfen.</li><li>Faltenschlauch hoch, Luft aus dem Jacket lassen.</li><li>Druckausgleich, dann etwa jeden Meter wieder.</li></ol>"},
+  {h:"Auftauchen", html:"<ol><li>Dem Buddy zeigen: Auftauchen.</li><li>Instrumente prüfen.</li><li>Faltenschlauch hoch, damit du Luft ablassen kannst.</li><li>Nach oben schauen, ob frei ist.</li><li>Langsam steigen, max. 9 m/min, Buddy im Blick.</li><li>Oben sofort Jacket aufblasen.</li></ol>"},
+  {h:"Atemregler-Übungen", html:"<ul><li><b>Ausblasen:</b> Regler wieder in den Mund nehmen und kräftig hineinpusten. Oder die <b>Luftdusche</b> drücken, wenn du keine Luft mehr in der Lunge hast.</li><li>Ohne Regler im Mund immer <b>kleine Bläschen ausatmen</b>, nie die Luft anhalten.</li><li><b>Wiederfinden (Armschwing-Methode):</b> nach rechts neigen, rechten Arm nach vorne strecken, eng am Körper nach unten und hinten bis zur Flasche streichen, dann seitlich ausstrecken. Der Schlauch hängt jetzt über dem Arm.</li><li><b>Wiederfinden (Ventilgriff-Methode):</b> mit links die Flasche von unten hochschieben, mit rechts über die Schulter zum Schlauch greifen.</li></ul>"},
+  {h:"Masken-Übungen", html:"<ul><li><b>Maske ausblasen:</b> Den oberen Rand leicht an die Stirn drücken, durch die Nase ausatmen und den Kopf etwas nach oben neigen. Das Wasser läuft unten raus.</li><li><b>Maske ab- und wieder aufsetzen</b>, dann ausblasen.</li><li><b>Ohne Maske schwimmen</b>: nicht die Nase zuhalten, nur durch den Mund atmen.</li></ul>"},
+  {h:"Weitere Übungen", html:"<ul><li><b>S-Drill</b> (S wie Safety): Der Buddy schaut, ob irgendwo Bläschen austreten, und beide Atemregler werden kurz getestet.</li><li><b>Schweben</b> mit neutraler Tarierung, feinsteuern mit der Atmung.</li><li><b>Luftspende</b> stehend, beim Aufstieg und schwimmend, als Spender und als Empfänger.</li><li><b>Inflatorschlauch abkoppeln</b>, falls er klemmt und das Jacket sich von selbst aufbläst.</li><li><b>Jacket mit dem Mund aufblasen.</b></li><li><b>Abblasender Atemregler</b>, Krampf lösen, müden Taucher abschleppen.</li><li>Blei und Tauchgerät ab- und wieder anlegen.</li><li><b>Boje (SMB) setzen</b> und den <b>Notaufstieg (CESA)</b> waagerecht üben.</li><li>Im Meer zusätzlich: <b>Kompass</b>-Navigation.</li></ul>"},
+  {h:"Tiefen im Kurs", html:"<p>Bei RAID gehen die ersten beiden Meer-Tauchgänge bis 12 m, die nächsten bis 18 m (Junior: 15 m) "+R+". Euer PADI-Kurs hat eigene Grenzen, siehe Startseite.</p>"}
+  ],
+  merke:["Ohne Regler im Mund: Bläschen ausatmen.","Maske: oben andrücken, Nase ausatmen.","Abtauchen und Auftauchen mit Schlauch nach oben.","Üben, bis es sitzt. Nachfragen ist erlaubt."],
+  frag:["Welche Übungen und welchen Schwimmtest gibt es im PADI-Kurs genau?"]
+}
+];
+
+/* Fragen: q, a = Antworten (erste ist richtig, Anzeige wird gemischt), e = Erklärung, s = Quelle, p = Plus-Stufe, x = Sicherheitsfrage */
+var TF = ["Stimmt","Stimmt nicht"];
+var FRAGEN = {
+regeln:[
+ {q:"Was ist die wichtigste Regel beim Gerätetauchen?",a:["Halte nie den Atem an","Atme möglichst wenig, um Luft zu sparen","Tauche immer bis zum Grund","Schwimm möglichst schnell"],e:"Die goldene Regel: Halte unter Wasser nie den Atem an. Wenn du nicht einatmen kannst, atme aus.",s:"Tauchen im Allgemeinen, Verwendung des Atemreglers",x:1},
+ {q:"Wie schnell darfst du höchstens auftauchen?",a:["9 Meter pro Minute","18 Meter pro Minute","30 Meter pro Minute","So schnell, wie du willst"],e:"Maximal 9 m pro Minute, oder langsamer, wenn der Tauchcomputer das anzeigt.",s:"Tauchen im Allgemeinen, Die 5 wichtigsten Regeln",x:1},
+ {q:"Wo und wie lange machst du den Sicherheitsstopp?",a:["Auf 5 m, 3 bis 5 Minuten","Auf 10 m, 1 Minute","Auf 2 m, 10 Minuten","Auf 15 m, 5 Minuten"],e:"Empfohlen bei jedem Tauchgang: 3 bis 5 Minuten auf 5 m Tiefe.",s:"Tauchen im Allgemeinen, Fachbegriffe"},
+ {q:"Wie weit darf dein Buddy bei guten Bedingungen höchstens weg sein?",a:["Etwa 3 Meter, in Griffweite","10 Meter","20 Meter","Egal, solange du ihn siehst"],e:"In Griffweite, bei idealen Bedingungen maximal 3 m.",s:"Tauchen im Allgemeinen, Tauchpartner"},
+ {q:"Was bedeutet das Handzeichen „Daumen nach oben“?",a:["Auftauchen","Alles super","Abtauchen","Stopp"],e:"Daumen hoch heisst beim Tauchen Auftauchen. Daumen runter heisst Abtauchen.",s:"Tauchen im Allgemeinen, Handzeichen"},
+ {q:"Was bedeutet die flache Hand, die hin und her kippt?",a:["Problem, etwas stimmt nicht","Ich habe einen Fisch gesehen","Stopp","Auftauchen"],e:"Das Kippen der flachen Hand bedeutet „Problem“.",s:"Tauchen im Allgemeinen, Handzeichen"},
+ {q:"Die flache Hand mit der Handfläche nach vorne bedeutet …",a:["Stopp","Auftauchen","Problem","Luft ist alle"],e:"Flache Hand nach vorne heisst Stopp.",s:"Tauchen im Allgemeinen, Handzeichen"},
+ {q:"„Den Sicherheitsstopp darf man im Notfall weglassen.“",a:[TF[0],TF[1]],e:"Stimmt. In einem Notfall oder wenn die Luft nicht mehr reicht, darf man direkt auftauchen.",s:"Tauchen im Allgemeinen, Fachbegriffe"},
+ {q:"„Nitrox darf man ohne Zusatzausbildung tauchen.“",a:[TF[1],TF[0]],e:"Stimmt nicht. Nitrox bringt neue Gefahren mit sich und braucht eine extra Ausbildung.",s:"Tauchen im Allgemeinen, Fachbegriffe"},
+ {q:"Was solltest du vor dem Tauchen tun?",a:["Genug Wasser trinken","Wenig trinken, damit man nicht muss","Viel Fettiges essen","Gar nichts essen"],e:"Ein guter Flüssigkeitshaushalt ist wichtig. Fettreiches Essen und Alkohol sind schlecht.",s:"Tauchen im Allgemeinen, Vor dem Tauchgang"},
+ {q:"Was ist die Nullzeit?",a:["Die Zeit, die du auf einer Tiefe bleiben darfst und trotzdem ohne Pflicht-Stopps direkt auftauchen kannst","Die Zeit an der Oberfläche zwischen zwei Tauchgängen","Die Zeit, bis die Flasche leer ist","Die Zeit für den Abstieg"],e:"Nullzeit heisst: maximale Zeit auf einer Tiefe ohne Dekompressionsstopps.",s:"Tauchen im Allgemeinen, Nullzeitgrenze",p:1},
+ {q:"Wofür steht SCUBA?",a:["Ein Atemgerät, das man selbst unter Wasser mitträgt","Eine Tauchschule in den USA","Ein Handzeichen","Eine Fischart"],e:"Self-Contained Underwater Breathing Apparatus, ein unabhängiges Unterwasser-Atemgerät.",s:"Tauchen im Allgemeinen, Fachbegriffe",p:1}
+],
+ausruestung:[
+ {q:"Warum braucht man eine Tauchmaske und keine Schwimmbrille?",a:["Weil man durch die Nase Luft in die Maske blasen muss, um den Druck auszugleichen","Weil Schwimmbrillen beschlagen","Weil Masken billiger sind","Weil man durch die Nase atmet"],e:"Der Nasenteil der Maske wird gebraucht, um den Druck in der Maske auszugleichen.",s:"Ausrüstung, Tauchmaske vs. Schwimmbrille"},
+ {q:"Wie testest du, ob eine Maske passt?",a:["Aufs Gesicht legen, ohne einzuatmen, und auf Lücken prüfen","Fest einatmen, bis sie hält","Band ganz fest ziehen","Unter Wasser ausprobieren, ob sie leckt"],e:"Ohne einzuatmen! Viele Masken saugen sich sonst fest, auch wenn sie nicht dicht sind.",s:"Ausrüstung, Finde die passende Maske"},
+ {q:"Was machst du mit einer neuen Maske vor dem ersten Tauchen?",a:["Den Schutzfilm innen mit Zahnpasta (ohne Gel) entfernen","Nichts","Mit Öl einreiben","In die Sonne legen"],e:"Sonst beschlägt das Glas, und Antibeschlagmittel wirken nicht richtig.",s:"Ausrüstung, Vorbereitung für den Gebrauch"},
+ {q:"„Das Tarierjacket ist eine Rettungsweste und hält Bewusstlose sicher mit dem Gesicht nach oben.“",a:[TF[1],TF[0]],e:"Stimmt nicht. Das Tariersystem ist keine Rettungsweste.",s:"Ausrüstung, Auswahl eines Tariersystems",x:1},
+ {q:"Wofür ist der Ersatzatemregler („Oktopus“)?",a:["Für den Buddy, wenn ihm die Luft ausgeht","Als Reserve, falls du deinen verlierst, sonst nichts","Zum Aufblasen des Jackets","Für den Schnorchel"],e:"Er ist für die Luftspende gedacht, wenn deinem Buddy die Luft knapp wird.",s:"Ausrüstung, Atemregler"},
+ {q:"Was zeigt das Finimeter an?",a:["Wie viel Luft noch in der Flasche ist","Wie tief du bist","Die Wassertemperatur","Die Himmelsrichtung"],e:"Das Finimeter zeigt den Restdruck in der Flasche.",s:"Ausrüstung, Instrumente"},
+ {q:"„Ich darf meinen Tauchcomputer meiner Schwester für ihren Tauchgang leihen.“",a:[TF[1],TF[0]],e:"Stimmt nicht. Der Computer rechnet mit deinen bisherigen Tauchgängen, die Werte stimmen für jemand anderen nicht.",s:"Ausrüstung, Tauchgangsplanung mit Tauchcomputer; Physiologie"},
+ {q:"Mit welcher Hand soll sich der Bleigürtel öffnen lassen?",a:["Mit der rechten","Mit der linken","Mit beiden zusammen","Egal"],e:"Diese Regel hilft auch Rettern, ihn ohne Nachdenken blind zu öffnen.",s:"Ausrüstung, Bleigürtel"},
+ {q:"Warum wärmt ein Neoprenanzug in der Tiefe weniger?",a:["Die Luftbläschen im Neopren werden zusammengedrückt","Weil das Wasser unten wärmer ist","Weil er nass wird","Er wärmt unten genauso"],e:"Der Druck macht das Neopren dünner. Damit sinken Wärmeschutz und Auftrieb.",s:"Ausrüstung, Nassanzüge"},
+ {q:"Was darf beim Abspülen auf keinen Fall passieren?",a:["Dass Wasser in die 1. Stufe kommt","Dass die Flossen nass werden","Dass die Maske nass wird","Dass das Jacket nass wird"],e:"Staubkappe trocken aufsetzen und die 1. Stufe nie untertauchen.",s:"Ausrüstung, Allgemeine Wartung"},
+ {q:"Was macht die 1. Stufe des Atemreglers?",a:["Sie senkt den Flaschendruck von etwa 200 auf etwa 8 bis 10 bar","Sie zeigt die Tiefe an","Sie bläst das Jacket auf","Sie filtert Salz aus dem Wasser"],e:"Die 2. Stufe gibt dann die Luft mit Umgebungsdruck an dich weiter.",s:"Ausrüstung, Atemregler",p:1},
+ {q:"Darf man die Leine der Boje (SMB) am Körper festbinden?",a:["Nein, die Strömung könnte dich nach oben ziehen oder du verfängst dich","Ja, damit sie nicht verloren geht","Ja, aber nur am Handgelenk","Nur im Pool"],e:"Seil und Boje nie an Ausrüstung oder Körper festbinden.",s:"Ausrüstung, Oberflächenmarkierungsbojen",p:1}
+],
+physik:[
+ {q:"Wie hoch ist der Druck in 10 m Meerwasser?",a:["2 bar","1 bar","10 bar","0,5 bar"],e:"1 bar Luftdruck plus 1 bar vom Wasser.",s:"Physik, Tabelle 1"},
+ {q:"Ein Ballon hat oben 1 Liter Luft. Wie gross ist er in 10 m?",a:["Etwa ½ Liter","Etwa 2 Liter","Gleich gross","Etwa ¼ Liter"],e:"Doppelter Druck heisst halbes Volumen (Gesetz von Boyle-Mariotte).",s:"Physik, Tabelle 1"},
+ {q:"Wo ändert sich das Luftvolumen beim Auf- und Abtauchen am stärksten?",a:["Zwischen Oberfläche und 10 m","Zwischen 20 und 30 m","Überall gleich","Nur ganz tief unten"],e:"Hier verdoppelt oder halbiert sich das Volumen. Daher ist dieser Bereich besonders heikel.",s:"Physik, Druck, Volumen und Dichte"},
+ {q:"Warum darfst du beim Auftauchen nie die Luft anhalten?",a:["Die Luft in der Lunge dehnt sich aus, die Lunge kann reissen","Weil man sonst zu langsam ist","Weil die Maske beschlägt","Weil die Ohren knacken"],e:"Ausdehnende Luft kann die Lunge überdehnen. Luft kann dann ins Blut gelangen. Lebensgefährlich!",s:"Physik, Die Lunge und Druckveränderungen",x:1},
+ {q:"Deine Luft reicht an der Oberfläche 60 Minuten. Wie lange etwa in 20 m?",a:["Etwa 20 Minuten","Etwa 60 Minuten","Etwa 30 Minuten","Etwa 120 Minuten"],e:"In 20 m (3 bar) brauchst du pro Atemzug 3-mal so viel Luft.",s:"Physik, Mit Tauchflasche unter Wasser"},
+ {q:"Du hast im Pool geübt und tauchst jetzt im Meer. Was ist mit dem Blei?",a:["Du brauchst mehr","Du brauchst weniger","Gleich viel","Du brauchst keins"],e:"Salzwasser ist schwerer und trägt mehr. Deshalb braucht man mehr Blei.",s:"Physik, Veränderung der Wasserbeschaffenheit"},
+ {q:"Wie erscheinen Fische und Steine durch die Maske?",a:["Etwa ⅓ grösser und näher","Kleiner und weiter weg","Genau gleich","Unscharf"],e:"Das liegt an der Lichtbrechung am Maskenglas.",s:"Physik, Sicht"},
+ {q:"Welche Farbe verschwindet mit der Tiefe zuerst?",a:["Rot","Blau","Grün","Alle gleich schnell"],e:"Rot und Orange werden vom Wasser zuerst geschluckt, Blau bleibt.",s:"Physik, Farben"},
+ {q:"Wie viel schneller kühlt Wasser den Körper aus als Luft?",a:["Etwa 20-mal","Etwa 2-mal","Gleich schnell","Etwa 100-mal"],e:"Deshalb ist der passende Anzug so wichtig.",s:"Physik, Wärmeverlust im Wasser"},
+ {q:"Was ist beim Hören unter Wasser schwierig?",a:["Zu erkennen, woher ein Geräusch kommt","Überhaupt etwas zu hören","Laute Geräusche","Es ist gar nichts schwierig"],e:"Schall ist im Wasser schneller. Er scheint oft von oben zu kommen.",s:"Physik, Schall"},
+ {q:"Woran merkst du, dass du richtig viel Blei hast?",a:["Leeres Jacket, Luft angehalten: Wasser steht auf Höhe des Scheitels","Du sinkst sofort wie ein Stein","Du kannst gar nicht untergehen","Das sagt der Tauchcomputer"],e:"So lautet der Gewichtungstest in den Unterlagen.",s:"Physik, Korrekte Gewichtung"},
+ {q:"„Beim Schnorcheltauchen (ohne Flasche) darf man die Luft anhalten.“",a:[TF[0],TF[1]],e:"Stimmt. Du atmest keine Druckluft, die Luft wird beim Auftauchen nur wieder so gross wie oben.",s:"Physik, Die Lunge und Druckveränderungen"},
+ {q:"Wie hoch ist der Druck in 15 m Meerwasser?",a:["2,5 bar","1,5 bar","15 bar","3 bar"],e:"15 m ÷ 10 = 1,5 bar Wasser plus 1 bar Luftdruck.",s:"Physik, Absolutdruck",p:1},
+ {q:"Wie hoch ist der Sauerstoff-Partialdruck in 20 m mit normaler Luft?",a:["0,63 bar","0,21 bar","1,6 bar","3 bar"],e:"0,21 bar × 3 = 0,63 bar.",s:"Physik, Partialdruckberechnung",p:1}
+],
+koerper:[
+ {q:"Wann machst du den Druckausgleich?",a:["Früh und oft, etwa jeden Meter","Erst wenn es richtig wehtut","Nur unten am Grund","Gar nicht, das passiert von selbst"],e:"Die grösste Druckänderung passiert auf den ersten Metern. Deshalb früh beginnen.",s:"Physiologie, Verständnis des Druckausgleichs",x:1},
+ {q:"Wie geht das Valsalva-Manöver?",a:["Nase zuhalten und sanft dagegen ausatmen","Ganz fest pressen","Luft anhalten und schlucken","Durch den Mund einatmen"],e:"Sanft! Zu starkes Pressen kann das Innenohr verletzen.",s:"Physiologie, Valsalva-Manöver"},
+ {q:"Beim Abtauchen tut dein Ohr weh. Was tust du?",a:["Etwa 1 m aufsteigen und es nochmal versuchen, sonst abbrechen","Schnell weiter abtauchen","Ganz fest pressen","Die Maske absetzen"],e:"Nicht übertreiben. Klappt es nicht, den Tauchgang abbrechen.",s:"Physiologie, Richtlinien für den Druckausgleich",x:1},
+ {q:"„Mit einem leichten Schnupfen kann man ruhig tauchen.“",a:[TF[1],TF[0]],e:"Stimmt nicht. Der Druckausgleich klappt dann schlecht, Trommelfell oder Nebenhöhlen können verletzt werden.",s:"Physiologie, Ohren und Nebenhöhlen"},
+ {q:"Die Maske drückt beim Abtauchen ins Gesicht. Was hilft?",a:["Leicht durch die Nase in die Maske ausatmen","Das Band fester ziehen","Die Maske abnehmen","Schneller abtauchen"],e:"So gleichst du den Druck in der Maske aus.",s:"Physiologie, Maskenbarotrauma"},
+ {q:"Was löst die Dekompressionskrankheit (DCS) aus?",a:["Stickstoffbläschen, die sich bei zu schnellem Auftauchen bilden","Zu viel Sonne","Salzwasser im Mund","Zu kaltes Wasser"],e:"Unter Druck löst sich Stickstoff im Körper, der beim Auftauchen langsam wieder raus muss.",s:"Physiologie, Dekompressionskrankheit"},
+ {q:"Jemand hat nach dem Tauchen Gelenkschmerzen und Kribbeln. Was ist richtig?",a:["Nicht mehr tauchen, 100 % Sauerstoff atmen, sofort zum Arzt","Nochmal abtauchen, um es wegzumachen","Abwarten, das geht von selbst weg","Heiss duschen und schlafen"],e:"Jede DCS ernst nehmen! Nie im Wasser „behandeln“ und nicht kleinreden.",s:"Physiologie, Behandlung; Tauchen im Allgemeinen",x:1},
+ {q:"Was ist gefährlich, bevor man beim Schnorcheln abtaucht?",a:["Viele Male schnell und tief atmen (hyperventilieren)","Ruhig atmen","Die Maske ausblasen","Die Flossen anziehen"],e:"Man kann dabei ohne Warnung ohnmächtig werden (Flachwasser-Blackout).",s:"Physiologie, Flachwasser-Blackout",x:1},
+ {q:"Du bist unter Wasser völlig ausser Atem. Was zuerst?",a:["Stoppen, atmen, nachdenken","Schneller schwimmen","Sofort hochschiessen","Den Atemregler rausnehmen"],e:"Erst zur Ruhe kommen, dann dem Buddy Bescheid geben und handeln.",s:"Physiologie, Überanstrengung"},
+ {q:"In heissen Ländern ziehst du den Tauchanzug am besten …",a:["kurz vor dem Tauchgang an","schon morgens im Hotel an","nach dem Einstieg im Wasser an","gar nicht an"],e:"Sonst überhitzt du, weil der Anzug die Wärmeabgabe stoppt.",s:"Physiologie, Hyperthermie und Hypothermie"},
+ {q:"Wie unterscheiden sich die Anzeichen von Lungenverletzung (AGE) und DCS?",a:["AGE kommt schnell beim Auftauchen, DCS meist etwas später","DCS kommt immer sofort","Beide erst nach Tagen","Es gibt keinen Unterschied"],e:"Die Erste Hilfe ist aber bei beiden gleich: Sauerstoff und Arzt.",s:"Physiologie, Arterielle Gasembolie",p:1},
+ {q:"Wie fühlt sich ein Tiefenrausch an, und was hilft?",a:["Wie betrunken; ein paar Meter aufsteigen","Wie Muskelkater; Pause machen","Wie Hunger; etwas essen","Wie Frieren; schneller schwimmen"],e:"Die Stickstoffnarkose beginnt ab etwa 30 m und verschwindet beim Aufsteigen schnell.",s:"Physiologie, Stickstoffnarkose",p:1}
+],
+planen:[
+ {q:"Du hast deinen Buddy verloren. Was tust du?",a:["Etwa 1 Minute suchen, dann langsam auftauchen und oben treffen","Weitertauchen und hoffen","Sofort ganz schnell hoch","Unten warten, bis er kommt"],e:"So sind sich alle einig, wo man sich wiederfindet.",s:"Management, Sichere Tauchgangsplanung; Rettung",x:1},
+ {q:"Was machst du als Erstes, wenn du an der Oberfläche ankommst?",a:["Jacket aufblasen (positiver Auftrieb)","Mit dem Buddy reden","Die Maske abnehmen","Den Atemregler ausspucken"],e:"Erst Auftrieb, dann reden. So vermeidest du viele Probleme.",s:"Management, Problemmanagement",x:1},
+ {q:"Was gehört zum Buddy-Check?",a:["Prüfen, ob das Flaschenventil offen ist","Prüfen, ob der Buddy gefrühstückt hat","Wassertemperatur messen","Fotos machen"],e:"Ventil, Atemregler, Flasche fest, Jacket und Blei, Rest okay.",s:"Begrenztes Freiwasser, Buddy-Check"},
+ {q:"Welche Seite ist Backbord?",a:["Links, wenn man nach vorne schaut","Rechts","Vorne","Hinten"],e:"Backbord links, Steuerbord rechts, Bug vorne, Heck hinten.",s:"Management, Fachbegriffe an Bord"},
+ {q:"Wie springst du von einem grossen Tauchboot ins Wasser?",a:["Mit einem grossen Schritt vorwärts","Mit einem Kopfsprung","Mit einer Rolle rückwärts","Mit einem Salto"],e:"Die Rolle rückwärts nimmt man vom kleinen Boot oder Schlauchboot.",s:"Management, Tauchgang"},
+ {q:"Was muss mit den Schiffsschrauben sein, wenn Taucher ein- oder aussteigen?",a:["Sie müssen stillstehen (Leerlauf)","Sie müssen langsam drehen","Das ist egal","Sie müssen rückwärts drehen"],e:"Sonst besteht grosse Verletzungsgefahr.",s:"Management, Sicherheitshinweis Bootstauchen"},
+ {q:"Was begrenzt, wie lange ihr tauchen könnt?",a:["Alles davon: Luft, Nullzeit, Kälte, erlaubte Tiefe","Nur die Luft","Nur die Nullzeit","Nur die Kälte"],e:"Man plant immer mit dem vorsichtigsten Wert.",s:"Management, Tauchzeit; Einschränkende Faktoren"},
+ {q:"„Wenn ich unter Wasser zu zittern beginne, beende ich den Tauchgang.“",a:[TF[0],TF[1]],e:"Stimmt. Zittern ist ein Warnsignal des Körpers.",s:"Management, Umwelteinflüsse"},
+ {q:"Was hilft gegen Seekrankheit auf dem Boot?",a:["Zum Horizont schauen und an der frischen Luft bleiben","Unter Deck lesen","Viel Fettiges essen","Wenig trinken"],e:"Ausserdem: viel Wasser trinken und genug schlafen.",s:"Management, Seekrankheit"},
+ {q:"Was darf man mit den Warnungen des Tauchcomputers nie tun?",a:["Sie ignorieren","Sie lesen","Sie dem Buddy zeigen","Auf sie reagieren"],e:"Warnungen nie ignorieren, und den Computer vor dem Tauchen einschalten und den Akku prüfen.",s:"Ausrüstung, Tauchcomputer"},
+ {q:"Flasche 11,1 Liter, 150 bar nutzbar. Wie viel Luft (bei Oberflächendruck) ist das?",a:["1665 Liter","161 Liter","1500 Liter","2220 Liter"],e:"150 bar × 11,1 l = 1665 Liter.",s:"Management, Berechnung des Atemgasvorrates",p:1},
+ {q:"Du hast 1665 Liter und brauchst in der Tiefe 56 l pro Minute. Wie lange reicht das?",a:["Etwa 30 Minuten","Etwa 56 Minuten","Etwa 10 Minuten","Etwa 60 Minuten"],e:"1665 ÷ 56 ≈ 30 Minuten.",s:"Management, Beispiel",p:1}
+],
+umwelt:[
+ {q:"Eine Ripströmung zieht dich vom Strand weg. Was tust du?",a:["Quer zur Strömung (im rechten Winkel) herausschwimmen","Mit aller Kraft dagegen anschwimmen","Untertauchen und warten","Mit der Strömung aufs Meer"],e:"Nie gegen eine Ripströmung anschwimmen!",s:"Umwelt, Ripströmung",x:1},
+ {q:"Bei leichter Strömung beginnst du den Tauchgang …",a:["gegen die Strömung","mit der Strömung","quer zur Strömung","gar nicht"],e:"So trägt dich die Strömung auf dem Rückweg zum Ausstieg.",s:"Umwelt, Leichte Strömung"},
+ {q:"Was sind Korallen?",a:["Tiere (winzige Polypen)","Steine","Pflanzen","Pilze"],e:"Sie werden oft fälschlich als Stein oder Pflanze dargestellt.",s:"Umwelt, Korallenriffe"},
+ {q:"Warum soll man Korallen nicht anfassen?",a:["Ihre Schutzschicht geht kaputt, sie können absterben","Weil sie heiss sind","Weil sie weglaufen","Das darf man ruhig"],e:"Danach können Bakterien angreifen.",s:"Umwelt, Aktive Interaktion"},
+ {q:"Wann trägst du Sonnencreme auf?",a:["20 bis 30 Minuten bevor du ins Wasser gehst","Direkt im Wasser","Nach dem Tauchgang","Gar nicht"],e:"Dann wäscht sie sich nicht so schnell ab und gelangt weniger ins Meer.",s:"Umwelt, Richtlinien für umweltbewusstes Tauchen"},
+ {q:"„Fische zu füttern ist gut für sie.“",a:[TF[1],TF[0]],e:"Stimmt nicht. Es verändert ihr Fressverhalten, manche jagen dann nicht mehr selbst.",s:"Umwelt, Aktive Interaktion"},
+ {q:"Was ist beim Skorpionsfisch gefährlich?",a:["Giftige Flossenstacheln, und er ist gut getarnt","Seine Zähne","Er schwimmt sehr schnell","Nichts"],e:"Am besten schützt gute Tarierung mit Abstand zum Boden.",s:"Umwelt, Skorpionsfische"},
+ {q:"Warum öffnet und schliesst die Muräne ständig ihr Maul?",a:["So atmet sie: Wasser strömt über die Kiemen","Sie droht dir","Sie hat Hunger","Sie gähnt"],e:"Sie beisst nur, wenn man sie provoziert.",s:"Umwelt, Muränen"},
+ {q:"Wie oft greifen Haie Taucher an?",a:["Extrem selten","Oft","Bei jedem Tauchgang","Nie, auch nicht wenn man sie stört"],e:"Haie sind überwiegend harmlos. Informiere dich trotzdem über Arten vor Ort.",s:"Umwelt, Haie"},
+ {q:"Warum hältst du im See Abstand zum Boden?",a:["Der feine Schlick wird aufgewirbelt und die Sicht ist weg","Weil dort Haie sind","Weil es dort warm ist","Das muss man nicht"],e:"Das gilt besonders für die Flossen.",s:"Umwelt, Seen"},
+ {q:"Wann gibt es eine Springtide (besonders starke Gezeit)?",a:["Bei Voll- und Neumond","Bei Halbmond","Nur im Winter","Jeden Mittag"],e:"Dann stehen Erde, Sonne und Mond in einer Linie.",s:"Umwelt, Gezeiten",p:1},
+ {q:"Was ist eine Thermokline (Sprungschicht)?",a:["Eine Wasserschicht, an der es plötzlich deutlich kälter wird","Eine Strömung","Eine Korallenart","Ein Tauchcomputer-Modus"],e:"Sie trennt warmes und kaltes Wasser.",s:"Umwelt, Temperatur",p:1}
+],
+helfen:[
+ {q:"Dir geht unter Wasser die Luft aus, dein Buddy ist nah. Was ist die beste Lösung?",a:["Zeichen geben und Luft vom Buddy atmen","Sofort alleine hochschwimmen","Die Luft anhalten","Den Atemregler abschrauben"],e:"Luft vom Buddy ist die sicherste Option.",s:"Rettung, Atemgas komplett verbraucht",x:1},
+ {q:"Wie machst du den kontrollierten Notaufstieg (CESA)?",a:["Langsam ausatmen mit „aaah“, Atemregler im Mund lassen","Luft anhalten und schnell hoch","Atemregler rausnehmen und hochschwimmen","Jacket ganz aufblasen und hochschiessen"],e:"Ausatmen hält die Atemwege offen. Max. 9 m pro Minute.",s:"Rettung, CESA",x:1},
+ {q:"Du musst unter Wasser husten. Was tust du?",a:["Durch den Atemregler husten und ihn festhalten","Den Atemregler rausnehmen","Auftauchen, so schnell es geht","Luft anhalten"],e:"Nimmst du den Regler raus, atmest du leicht Wasser ein.",s:"Rettung, Husten und Seekrankheit"},
+ {q:"Du hast einen Krampf in der Wade. Was hilft?",a:["Flossenspitze zu dir ziehen und den Muskel dehnen","Schneller schwimmen","Bein ausschütteln","Auftauchen"],e:"Danach gemütlich weitertauchen.",s:"Begrenztes Freiwasser, Krampf lösen"},
+ {q:"An der Oberfläche kannst du dich nicht über Wasser halten. Was hilft?",a:["Jacket aufblasen und notfalls Blei abwerfen","Schneller strampeln","Schnorchel ablegen","Maske abnehmen"],e:"Viele schwere Unfälle wären vermeidbar gewesen, wenn das Blei abgeworfen worden wäre.",s:"Rettung, Mögliche Probleme an der Oberfläche",x:1},
+ {q:"Woran erkennst du einen Taucher in Panik?",a:["Er spuckt den Atemregler aus und schiebt die Maske auf die Stirn","Er schwebt ruhig","Er zeigt das Auftauchen-Zeichen","Er macht Fotos"],e:"Ausserdem: schnelle Atmung, Kopf krampfhaft hoch, reagiert nicht auf Anweisungen.",s:"Rettung, Problemerkennung"},
+ {q:"Was tust du als Tauchanfängerin bei einem Taucher in Panik?",a:["Mich nicht selbst gefährden, Schwimmhilfe zuwerfen, Hilfe holen","Sofort zu ihm schwimmen und festhalten","Wegschauen","Unter ihm durchtauchen"],e:"Sonst müssen am Ende zwei Personen gerettet werden.",s:"Rettung, Problemerkennung"},
+ {q:"Dein Atemregler bläst ständig Luft ab. Was tust du?",a:["Weiter daraus atmen, Buddy informieren, auftauchen","Ihn sofort ausspucken","Luft anhalten","Weitertauchen wie bisher"],e:"Die Luft geht schnell zur Neige. Darum bald mit dem Buddy auftauchen.",s:"Rettung, Abblasender Atemregler"},
+ {q:"Ein Taucher treibt mit dem Gesicht nach unten und reagiert nicht. Was zuerst?",a:["Auf den Rücken drehen, damit Mund und Nase an der Luft sind, und Hilfe rufen","Ihm die Flossen ausziehen","Ihn untertauchen","Warten, ob er sich bewegt"],e:"Ausserdem Auftrieb herstellen.",s:"Rettung, Unterstützung eines anderen Tauchers"},
+ {q:"Wo passieren laut den Unterlagen mehr Tauchunfälle?",a:["An der Oberfläche","In 20 m Tiefe","Beim Sicherheitsstopp","Am Grund"],e:"Darum ist „Auftrieb an der Oberfläche“ so wichtig.",s:"Rettung, Mögliche Probleme an der Oberfläche",p:1},
+ {q:"Wann ist der Notaufstieg (CESA) die richtige Wahl?",a:["Nur als letzte Möglichkeit, wenn kein Buddy erreichbar ist","Immer, wenn man hochwill","Bei jedem Sicherheitsstopp","Wenn die Maske beschlägt"],e:"Besser: Luft immer im Blick haben und nah beim Buddy bleiben.",s:"Begrenztes Freiwasser, CESA",p:1}
+],
+uebungen:[
+ {q:"Du hast keinen Atemregler im Mund. Was machst du mit dem Atem?",a:["Ständig kleine Bläschen ausatmen","Luft anhalten","Tief durch die Nase einatmen","Nichts Besonderes"],e:"So bleiben die Atemwege offen. Nie die Luft anhalten!",s:"Begrenztes Freiwasser, Atemregler ausblasen",x:1},
+ {q:"Wie bläst du Wasser aus der Maske?",a:["Oberen Rand an die Stirn drücken, durch die Nase ausatmen, Kopf leicht heben","Durch den Mund in die Maske pusten","Maske kurz abnehmen und ausschütteln","Fest einatmen"],e:"Das Wasser wird unten aus der Maske gedrückt.",s:"Begrenztes Freiwasser, Teilweise geflutete Maske ausblasen"},
+ {q:"Du hast keine Luft mehr in der Lunge, um den Regler auszublasen. Was nun?",a:["Den Luftduschen-Knopf drücken","Einatmen und hoffen","Den Regler wegwerfen","Auftauchen"],e:"Die Luftdusche drückt das Wasser aus der 2. Stufe.",s:"Begrenztes Freiwasser, Luftduschen-Methode"},
+ {q:"Wie findest du deinen Atemregler mit der Armschwing-Methode?",a:["Rechten Arm eng am Körper nach hinten unten führen und seitlich ausstrecken, der Schlauch liegt dann auf dem Arm","Mit beiden Händen am Rücken suchen","Den Buddy fragen","Auftauchen und oben suchen"],e:"Dabei leicht nach rechts neigen. Solange du suchst, atmest du aus dem Ersatzatemregler oder bläst Bläschen.",s:"Begrenztes Freiwasser, Armschwing-Methode"},
+ {q:"Wofür ist der S-Drill?",a:["Prüfen, ob irgendwo Luft austritt und ob beide Atemregler funktionieren","Eine Schwimmübung","Ein Handzeichen für Hai","Den Kompass einstellen"],e:"S steht für Safety (Sicherheit).",s:"Begrenztes Freiwasser, S-Drill"},
+ {q:"Du schwimmst ohne Maske. Wie atmest du?",a:["Nur durch den Mund, Nase nicht zuhalten","Durch die Nase","Nase zuhalten","Gar nicht"],e:"Durch die Nase auszuatmen kann dazu führen, dass man aus Versehen durch die Nase einatmet.",s:"Begrenztes Freiwasser, Schwimmen ohne Maske"},
+ {q:"Was machst du mit dem Faltenschlauch beim Abtauchen?",a:["Über den Kopf halten und Luft ablassen","Nach unten halten","Abschrauben","In die Tasche stecken"],e:"Die Luft sammelt sich oben im Jacket.",s:"Begrenztes Freiwasser, Abstieg mit Druckausgleich"},
+ {q:"Warum schaust du beim Auftauchen nach oben?",a:["Um zu prüfen, dass nichts im Weg ist, zum Beispiel ein Boot","Wegen der Sonne","Um die Fische zu zählen","Das muss man nicht"],e:"Das gehört zum sicheren Aufstieg.",s:"Begrenztes Freiwasser, Aufstieg"},
+ {q:"Dein Jacket bläst sich von selbst auf, der Inflator klemmt. Was tust du?",a:["Den Inflatorschlauch abkoppeln und Luft ablassen","Weiter aufsteigen","Blei abwerfen","Luft anhalten"],e:"Danach neutrale Tarierung herstellen und dem Buddy Bescheid geben.",s:"Begrenztes Freiwasser, Niederdruck-Inflatorschlauch abkoppeln"},
+ {q:"Du liegst am Boden und tarierst. Woran merkst du, dass es fast passt?",a:["Beim Einatmen hebt sich der Brustkorb, beim Ausatmen sinkst du","Du schiesst nach oben","Du bleibst fest liegen","Der Computer piept"],e:"Mit der Lunge steuerst du dann fein nach.",s:"Begrenztes Freiwasser, Neutrale Tarierung und Schweben"},
+ {q:"Wie bläst du das Jacket unter Wasser mit dem Mund auf?",a:["Einatmen, Regler raus, etwas Luft ins Inflator-Mundstück blasen, dabei den Ablassknopf drücken","Durch den Schnorchel","Einfach in die Weste beissen","Das geht nur an der Oberfläche"],e:"Danach den Regler wieder in den Mund nehmen und Bläschen ausatmen, solange er draussen ist.",s:"Begrenztes Freiwasser, Tariersystem oral aufblasen",p:1}
+]
+};
+
+/* ===================== APP ===================== */
+var app = document.getElementById("app");
+var store = {
+  get:function(k,d){try{var v=localStorage.getItem("tt_"+k);return v?JSON.parse(v):d}catch(e){return d}},
+  set:function(k,v){try{localStorage.setItem("tt_"+k,JSON.stringify(v))}catch(e){}}
+};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function paket(id){for(var i=0;i<PAKETE.length;i++)if(PAKETE[i].id===id)return PAKETE[i]}
+
+var SIGNS = [
+ ["Stopp","<path d='M22 54V30M30 52V16M38 52V14M46 54V18M46 40c4-6 8-8 10-6-2 6-6 14-10 22H22' fill='none' stroke='currentColor' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/>"],
+ ["Abtauchen","<rect x='14' y='14' width='30' height='22' rx='8' fill='none' stroke='currentColor' stroke-width='4'/><path d='M26 36v20' stroke='currentColor' stroke-width='6' stroke-linecap='round'/>"],
+ ["Auftauchen","<rect x='14' y='28' width='30' height='22' rx='8' fill='none' stroke='currentColor' stroke-width='4'/><path d='M26 28V8' stroke='currentColor' stroke-width='6' stroke-linecap='round'/>"],
+ ["Problem","<path d='M14 40l30-14' stroke='currentColor' stroke-width='8' stroke-linecap='round'/><path d='M10 22a14 14 0 0 1 12-10M54 44a14 14 0 0 1-10 10' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round'/>"]
+];
+
+function home(){
+  var read = store.get("read",{}), best = store.get("best",{});
+  var rows = PAKETE.map(function(p,i){
+    var n = FRAGEN[p.id].length;
+    var b = best[p.id];
+    return "<button class='row' data-go='paket-"+p.id+"'><span class='nr'>"+(i+1)+"</span><span class='t'><b>"+esc(p.titel)+"</b><span>"+esc(p.kurz)+"</span></span><span class='chips'>"+
+      (read[p.id]?"<span class='chip done'>gelesen</span>":"")+
+      "<span class='chip"+(b!=null&&b>=80?" done":"")+"'>"+(b!=null?"Quiz "+b+" %":n+" Fragen")+"</span></span></button>";
+  }).join("");
+  var nSafe = alle().filter(function(f){return f.x}).length;
+  app.innerHTML =
+  "<header class='hero'><div><span class='eyebrow'>Open-Water-Theorie · Frühjahr 2027</span><h1>Logbuch Tauchtheorie</h1>"+
+  "<p>Acht Lernpakete aus den Kursunterlagen, jedes mit Quiz. Lies ein Paket, dann prüf dich selbst. Die Basis-Stufe reicht für den Kurs, die Plus-Stufe ist für alle, die mehr wissen wollen.</p></div>"+
+  "<div class='gauge' aria-label='Tiefenskala'>"+
+   mk(0,"0 m Oberfläche")+mk(5,"<b>5 m</b> Sicherheitsstopp",1)+mk(12,"<b>12 m</b> PADI 10–11 J.",1)+mk(18,"<b>18 m</b> PADI 12–14 J.",1)+mk(20,"20 m RAID OW20")+
+  "</div></header>"+
+  "<section class='note warn'><h3>Euer Kurs ist ein PADI-Kurs</h3><p>Der Lernstoff kommt aus den RAID-Unterlagen. Die Inhalte sind sehr ähnlich, aber Zahlen und Regeln können sich unterscheiden. Was nur für RAID gilt, ist mit "+R+" markiert.</p>"+
+  "<p>Laut PADI gilt: <b>10 bis 11 Jahre</b> Junior Open Water, max. 12 m, Buddy nur Elternteil, Vormund oder PADI-Profi. <b>12 bis 14 Jahre</b> Junior Open Water, max. 18 m, mit einem zertifizierten Erwachsenen. Bitte beim Tauchcenter bestätigen lassen.</p></section>"+
+  "<section class='list'>"+rows+"</section>"+
+  "<section class='special'><button data-go='quiz-sicherheit' class='sos'><b>Sicherheits-Check</b><span>"+nSafe+" Fragen, die jede Taucherin sicher wissen muss</span></button>"+
+  "<button data-go='quiz-abschluss'><b>Abschlussquiz</b><span>20 gemischte Fragen aus allen Paketen</span></button></section>"+
+  "<section class='note'><h3>Fragen an den Instructor</h3><p>An manchen Stellen widersprechen sich die Unterlagen oder sagen nichts zum PADI-Kurs. Diese Punkte sind nicht im Quiz. Sammelt sie und fragt im Kurs nach:</p><ul>"+
+  PAKETE.reduce(function(a,p){return a.concat(p.frag)},[]).map(function(f){return "<li>"+esc(f)+"</li>"}).join("")+"</ul></section>"+
+  "<p class='src'>Quellen: RAID Open Water 20 Diver Kursmanuals (Deutsch, Stand 05/2024); PADI-Altersregeln laut blog.padi.com. Fortschritt wird nur auf diesem Gerät gespeichert.</p>";
+}
+function mk(m,label,hot){return "<span class='mk"+(hot?" hot":"")+"' style='top:"+(m/20*100)+"%'>"+label+"</span>"}
+
+function lesson(id){
+  var p = paket(id), i = PAKETE.indexOf(p);
+  var read = store.get("read",{});
+  app.innerHTML =
+  "<div class='top'><button class='back' data-go=''>← Übersicht</button><span class='eyebrow'>Paket "+(i+1)+" von "+PAKETE.length+"</span></div>"+
+  "<h1>"+esc(p.titel)+"</h1><p class='src'>Aus: "+esc(p.quelle)+"</p>"+
+  p.secs.map(function(s){return "<section class='sec'><h2>"+esc(s.h)+"</h2>"+s.html+"</section>"}).join("")+
+  "<section class='merke'><span class='eyebrow'>Merke</span><ul>"+p.merke.map(function(m){return "<li>"+esc(m)+"</li>"}).join("")+"</ul></section>"+
+  (p.frag.length?"<section class='note'><h3>Frag deinen Instructor</h3><ul>"+p.frag.map(function(f){return "<li>"+esc(f)+"</li>"}).join("")+"</ul></section>":"")+
+  "<div class='actions'><button class='btn' data-go='quiz-"+p.id+"'>Quiz starten</button><button class='btn alt' id='mark'>"+(read[id]?"Gelesen ✓":"Als gelesen markieren")+"</button></div>";
+  var sg = document.getElementById("signs");
+  if(sg) sg.innerHTML = SIGNS.map(function(s){return "<div class='sign'><svg viewBox='0 0 64 64' aria-hidden='true'>"+s[1]+"</svg><b>"+s[0]+"</b></div>"}).join("")+
+    "<p class='src' style='grid-column:1/-1'>Vereinfachte Skizzen. Das echte Aussehen zeigt euch der Instructor: Stopp = flache Hand nach vorne, Abtauchen = Daumen runter, Auftauchen = Daumen hoch, Problem = flache Hand hin und her kippen.</p>";
+  document.getElementById("mark").onclick = function(){var r=store.get("read",{});r[id]=true;store.set("read",r);this.textContent="Gelesen ✓"};
+  window.scrollTo(0,0);
+}
+
+function alle(){var out=[];PAKETE.forEach(function(p){FRAGEN[p.id].forEach(function(f){f.pk=p.id;out.push(f)})});return out}
+
+var Q = null;
+function quizStart(key){
+  var titel, basis = true, frei = false;
+  if(key==="sicherheit"){titel="Sicherheits-Check"; frei=true}
+  else if(key==="abschluss"){titel="Abschlussquiz"}
+  else {titel="Quiz: "+paket(key).titel}
+  app.innerHTML = "<div class='top'><button class='back' data-go=''>← Übersicht</button></div><h1>"+esc(titel)+"</h1>"+
+   (frei?"<p>Diese Fragen sind besonders wichtig für eure Sicherheit. Ziel: alles richtig.</p>":"<p>Welche Stufe möchtest du?</p>")+
+   "<div class='levels'>"+(frei?"<button class='btn orange' data-lvl='b'>Los geht’s</button>":"<button class='btn' data-lvl='b'>Basis</button><button class='btn alt' data-lvl='p'>Basis + Plus</button>")+"</div>";
+  app.querySelectorAll("[data-lvl]").forEach(function(b){b.onclick=function(){
+    var plus = b.getAttribute("data-lvl")==="p", pool;
+    if(key==="sicherheit") pool = alle().filter(function(f){return f.x});
+    else if(key==="abschluss") pool = shuffle(alle().filter(function(f){return plus||!f.p})).slice(0,20);
+    else pool = FRAGEN[key].filter(function(f){return plus||!f.p});
+    Q = {key:key,titel:titel,list:shuffle(pool),i:0,right:0,wrong:[]};
+    ask();
+  }});
+}
+function ask(){
+  var f = Q.list[Q.i];
+  var opts = shuffle(f.a.map(function(t,i){return {t:t,ok:i===0}}));
+  app.innerHTML = "<div class='top'><button class='back' data-go=''>← Abbrechen</button><span class='eyebrow'>Frage "+(Q.i+1)+" von "+Q.list.length+(f.p?" · Plus":"")+"</span></div>"+
+   "<div class='bar'><i style='width:"+(Q.i/Q.list.length*100)+"%'></i></div>"+
+   "<p class='q'>"+esc(f.q)+"</p><div class='opts'>"+opts.map(function(o,i){return "<button class='opt' data-i='"+i+"'>"+esc(o.t)+"</button>"}).join("")+"</div><div id='fb'></div>";
+  app.querySelectorAll(".opt").forEach(function(b){b.onclick=function(){
+    var o = opts[+b.getAttribute("data-i")];
+    app.querySelectorAll(".opt").forEach(function(x,i){x.disabled=true;if(opts[i].ok)x.classList.add("right")});
+    if(o.ok){Q.right++}else{b.classList.add("wrong");Q.wrong.push(f)}
+    var last = Q.i===Q.list.length-1;
+    document.getElementById("fb").innerHTML = "<div class='fb "+(o.ok?"ok":"no")+"'><b>"+(o.ok?"Richtig!":"Nicht ganz.")+"</b><p>"+esc(f.e)+"</p><p class='src'>Nachlesen: "+esc(f.s)+"</p></div>"+
+      "<div class='actions' style='margin-top:12px'><button class='btn' id='next'>"+(last?"Ergebnis":"Weiter")+"</button></div>";
+    document.getElementById("next").onclick = function(){Q.i++; if(Q.i<Q.list.length) ask(); else done()};
+    document.getElementById("next").focus();
+  }});
+  window.scrollTo(0,0);
+}
+function done(){
+  var pct = Math.round(Q.right/Q.list.length*100);
+  var best = store.get("best",{});
+  if(best[Q.key]==null||pct>best[Q.key]){best[Q.key]=pct;store.set("best",best)}
+  var msg = pct===100?"Perfekt! Alles richtig.":pct>=80?"Sehr gut, du bist fast sicher.":pct>=50?"Ein guter Anfang. Lies die markierten Stellen nochmal.":"Lies das Paket noch einmal in Ruhe und versuch es dann nochmal.";
+  app.innerHTML = "<div class='top'><button class='back' data-go=''>← Übersicht</button></div><h1>"+esc(Q.titel)+"</h1>"+
+   "<div><div class='score'>"+Q.right+" / "+Q.list.length+"</div><p>"+msg+"</p></div>"+
+   (Q.wrong.length?"<section class='review'><h2>Das solltest du nochmal anschauen</h2>"+Q.wrong.map(function(f){return "<div><b>"+esc(f.q)+"</b><span>Richtig: "+esc(f.a[0])+"</span><span class='src'>"+esc(f.s)+"</span></div>"}).join("")+"</section>":"")+
+   "<div class='actions'><button class='btn' id='again'>Nochmal</button>"+(paket(Q.key)?"<button class='btn alt' data-go='paket-"+Q.key+"'>Paket lesen</button>":"")+"</div>";
+  var k = Q.key; document.getElementById("again").onclick=function(){quizStart(k)};
+  window.scrollTo(0,0);
+}
+
+function route(){
+  var h = (location.hash||"").replace("#","");
+  if(h.indexOf("paket-")===0 && paket(h.slice(6))) lesson(h.slice(6));
+  else if(h.indexOf("quiz-")===0) quizStart(h.slice(5));
+  else home();
+}
+app.addEventListener("click",function(e){
+  var t = e.target.closest("[data-go]"); if(!t) return;
+  var g = t.getAttribute("data-go");
+  if(("#"+g)===location.hash || (g===""&&!location.hash)) route(); else location.hash = g;
+  if(g==="") {try{history.replaceState(null,"",location.pathname+location.search)}catch(err){} route()}
+});
+window.addEventListener("hashchange",route);
+route();
+</script>
